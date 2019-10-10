@@ -9,29 +9,40 @@ module.exports = {
       .first()
   },
   findSteps(id) {
-    return db('steps as s')
-      .select('s.id', 's.instructions as Instructions','schemes.scheme_name as Scheme_Name')
-      .join('schemes', 'schemes.id', 's.scheme_id')
+    return db('steps')
+      .select('steps.id', 'steps.instructions','schemes.scheme_name', 'steps.step_number')
+      .join('schemes', 'schemes.id', '=', 'steps.scheme_id')
       .where({ scheme_id: id })
+      .orderBy('step_number')
   },
   add(scheme) {
     return db('schemes')
       .insert(scheme)
       .then(([id]) => {
-        return db('schemes').where({ id })
+        return db('schemes').where({ id }).first()
       })
   },
-  addStep(step) {
+  addStep(step, id) { // req.body, req.params.id
+    step.scheme_id = id // add scheme_id, set it as the arg id
+    // need to find the largest step_number and increment
     return db('steps')
-
-    .insert(step)
+      .increment('step_number', 1) // not incrementing w/o existing step_number
+      .insert([step]) // '*' returns all columns from inserted?
+      .then((id) => {
+        return db('steps').where({ id }).first()
+      })
   },
-  update() {
-
+  update(changes, id) {
+    return db('schemes')
+      .where({ id }) // id:id is redundant and column is called id
+      .update(changes)
+      .then((id) => {
+        return db('schemes').where({ id }).first()
+      })
   },
   remove(id) {
-    return db('scheme')
-      .where({ scheme_id: id })
+    return db('schemes')
+      .where({ id })
       .del()
   }
 }
